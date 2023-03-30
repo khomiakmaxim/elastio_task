@@ -6,7 +6,7 @@ use elastio_task::prompt_agent::PromptAgent;
 
 fn main() -> anyhow::Result<()> {
     dotenv().ok();
-    let mut agent = PromptAgent::init().context(
+    let mut agent = PromptAgent::new().context(
         "There was an issue during elastio_task initialization. Contact developers for proceeding.",
     )?;
 

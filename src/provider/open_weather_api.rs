@@ -9,7 +9,8 @@ impl OpenWeatherApi {
     }
 }
 
-// TODO: think of those uri's + check how it behaves, when server is down
+// Тепер треба продумати методи отримання і парсинг відповідей від провайдера
+
 impl Provider for OpenWeatherApi {
     fn get_weather(
         &self,
