@@ -10,11 +10,9 @@ impl WeatherApi {
     pub fn new(api_key: String) -> WeatherApi {
         WeatherApi { api_key }
     }
-}
 
-impl WeatherApi {
     fn parse_response(resp: Value) -> Value {
-        println!("{:?}", resp["current"]);
+        // println!("{:?}", resp["current"]);
         resp
     }
 }
