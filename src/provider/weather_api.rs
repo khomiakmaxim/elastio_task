@@ -1,5 +1,7 @@
 use super::Provider;
 
+use serde_json::Value;
+
 pub struct WeatherApi {
     api_key: String,
 }
@@ -10,14 +12,22 @@ impl WeatherApi {
     }
 }
 
-// TODO: check for cases, when server is unreachable
+impl WeatherApi {
+    fn parse_response(resp: Value) -> Value {
+        println!("{:?}", resp["current"]);
+        resp
+    }
+}
+
 impl Provider for WeatherApi {
     fn get_weather(
         &self,
         timestamp: Option<i64>,
         address: String,
     ) -> anyhow::Result<serde_json::Value> {
+        // Maybe this result must be in some unifying format as well
         let uri = if let Some(timestamp) = timestamp {
+            // Here it should be more complex
             format!(
                 "http://api.weatherapi.com/v1/current.json?key={}&dt={}&q={}&aqi=no",
                 self.api_key, timestamp, address
@@ -28,7 +38,7 @@ impl Provider for WeatherApi {
                 self.api_key, address
             )
         };
-        let resp = reqwest::blocking::get(uri)?.json::<serde_json::Value>()?;
+        let resp = Self::parse_response(reqwest::blocking::get(uri)?.json::<Value>()?);
         Ok(resp)
     }
 }
