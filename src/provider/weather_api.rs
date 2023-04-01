@@ -21,7 +21,7 @@ impl Provider for WeatherApi {
     fn get_weather(
         &self,
         timestamp: Option<i64>,
-        address: String,
+        address: &str,
     ) -> anyhow::Result<serde_json::Value> {
         // Maybe this result must be in some unifying format as well
         let uri = if let Some(timestamp) = timestamp {

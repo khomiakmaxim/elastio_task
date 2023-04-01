@@ -101,7 +101,7 @@ impl PromptAgent {
 
                 let weather = self
                     .current_provider
-                    .get_weather(timestamp, space_time_config.address)?;
+                    .get_weather(timestamp, &space_time_config.address)?;
                 println!("{}", serde_json::to_string_pretty(&weather)?);
                 Ok(())
             }

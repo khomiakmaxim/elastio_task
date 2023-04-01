@@ -41,7 +41,7 @@ pub trait Provider {
     fn get_weather(
         &self,
         timestamp: Option<i64>,
-        address: String,
+        address: &str,
     ) -> anyhow::Result<serde_json::Value>;
 }
 
