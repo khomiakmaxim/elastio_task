@@ -20,7 +20,7 @@ impl OpenWeatherApi {
         let https_client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(TIMEOUT_SECONDS))
             .build()
-            .expect("Unable to build HTTPS client");
+            .expect("Unable to build HTTPS client"); //TODO: consider handling this more gracefully
         OpenWeatherApi {
             https_client,
             api_key,
@@ -33,7 +33,7 @@ impl OpenWeatherApi {
             .send()?
             .json::<serde_json::Value>()
     }
-    
+
     fn get_coordinates_per_place(&self, address: &str) -> anyhow::Result<Coordinates> {
         let uri = format!(
             "http://api.openweathermap.org/geo/1.0/direct?q={}&limit=1&appid={}",
@@ -123,34 +123,32 @@ mod tests {
 
     use crate::provider::ProviderName;
     use dotenvy::dotenv;
-    use std::sync::Mutex;
 
     lazy_static::lazy_static! {
-        static ref OPEN_WEATHER_API_PROVIDER: Mutex<OpenWeatherApi> = Mutex::new({
+        static ref API_KEY: String = {
             let provider_name = ProviderName::OpenWeatherMap;
             dotenv().ok();
-            let api_key = std::env::var(provider_name.to_string()).expect(format!("{}_API_KEY not found in .env", provider_name).as_str());
-            OpenWeatherApi::new(api_key)
-        });
+            std::env::var(provider_name.to_string()).expect(format!("{}_API_KEY not found in .env", provider_name).as_str())
+        };
     }
 
     #[test]
     fn test_get_weather_current() {
-        let provider = OPEN_WEATHER_API_PROVIDER.lock().unwrap();
+        let provider = OpenWeatherApi::new(API_KEY.to_string());
         let weather = provider.get_weather(None, "Mykolaiv, Lviv oblast, Ukraine");
         assert!(weather.is_ok());
     }
 
     #[test]
     fn test_get_weather_current_invalid_address() {
-        let provider = OPEN_WEATHER_API_PROVIDER.lock().unwrap();
+        let provider = OpenWeatherApi::new(API_KEY.to_string());
         let weather = provider.get_weather(None, "SO INVALID ADDRESS");
         assert!(weather.is_err());
     }
 
     #[test]
     fn test_get_weather_timed() {
-        let provider = OPEN_WEATHER_API_PROVIDER.lock().unwrap();
+        let provider = OpenWeatherApi::new(API_KEY.to_string());
         let timestamp = 1648844082;
         let weather = provider.get_weather(Some(timestamp), "Mykolaiv, Lviv oblast, Ukraine");
         assert!(weather.is_ok());
@@ -158,7 +156,7 @@ mod tests {
 
     #[test]
     fn test_get_weather_timed_invalid_timestamp() {
-        let provider = OPEN_WEATHER_API_PROVIDER.lock().unwrap();
+        let provider = OpenWeatherApi::new(API_KEY.to_string());
         let timestamp = 123456789;
         let result = provider.get_weather(Some(timestamp), "Mykolaiv, Lviv oblast, Ukraine");
         assert!(result.is_err());
