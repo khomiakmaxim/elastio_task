@@ -14,7 +14,11 @@ fn main() -> anyhow::Result<()> {
         let command = agent.parse_command();
 
         match command {
-            Ok(command) => agent.process_command(command)?,
+            Ok(command) => {
+                if let Err(err) = agent.process_command(command) {
+                    eprintln!("Error: {}. Please, see help and try again!", err);
+                }
+            }
             Err(err) => match err.kind() {
                 ErrorKind::DisplayHelp => {
                     eprintln!("{}", err)
