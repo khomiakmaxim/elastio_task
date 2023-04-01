@@ -203,6 +203,7 @@ dependencies = [
  "chrono",
  "clap",
  "dotenvy",
+ "lazy_static",
  "regex",
  "reqwest",
  "serde",

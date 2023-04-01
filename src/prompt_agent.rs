@@ -24,7 +24,7 @@ pub enum InputCommand {
 }
 
 pub struct PromptAgent {
-    current_provider: Box<dyn Provider>,
+    current_provider: Box<dyn Provider>, // TODO: Check for other polymorphic solutions
     current_provider_name: ProviderName,
     available_providers: HashMap<ProviderName, String>,
     date_time_regex: Regex,

@@ -33,8 +33,7 @@ impl OpenWeatherApi {
             .send()?
             .json::<serde_json::Value>()
     }
-
-    // TODO: implement such an input "Mykolaiv, Lviv oblast, Ukraine. " being possible to enter from a console
+    
     fn get_coordinates_per_place(&self, address: &str) -> anyhow::Result<Coordinates> {
         let uri = format!(
             "http://api.openweathermap.org/geo/1.0/direct?q={}&limit=1&appid={}",
@@ -114,5 +113,54 @@ impl Provider for OpenWeatherApi {
         }
 
         Ok(response)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    use crate::provider::ProviderName;
+    use dotenvy::dotenv;
+    use std::sync::Mutex;
+
+    lazy_static::lazy_static! {
+        static ref OPEN_WEATHER_API_PROVIDER: Mutex<OpenWeatherApi> = Mutex::new({
+            let provider_name = ProviderName::OpenWeatherMap;
+            dotenv().ok();
+            let api_key = std::env::var(provider_name.to_string()).expect(format!("{}_API_KEY not found in .env", provider_name).as_str());
+            OpenWeatherApi::new(api_key)
+        });
+    }
+
+    #[test]
+    fn test_get_weather_current() {
+        let provider = OPEN_WEATHER_API_PROVIDER.lock().unwrap();
+        let weather = provider.get_weather(None, "Mykolaiv, Lviv oblast, Ukraine");
+        assert!(weather.is_ok());
+    }
+
+    #[test]
+    fn test_get_weather_current_invalid_address() {
+        let provider = OPEN_WEATHER_API_PROVIDER.lock().unwrap();
+        let weather = provider.get_weather(None, "SO INVALID ADDRESS");
+        assert!(weather.is_err());
+    }
+
+    #[test]
+    fn test_get_weather_timed() {
+        let provider = OPEN_WEATHER_API_PROVIDER.lock().unwrap();
+        let timestamp = 1648844082;
+        let weather = provider.get_weather(Some(timestamp), "Mykolaiv, Lviv oblast, Ukraine");
+        assert!(weather.is_ok());
+    }
+
+    #[test]
+    fn test_get_weather_timed_invalid_timestamp() {
+        let provider = OPEN_WEATHER_API_PROVIDER.lock().unwrap();
+        let timestamp = 123456789;
+        let result = provider.get_weather(Some(timestamp), "Mykolaiv, Lviv oblast, Ukraine");
+        assert!(result.is_err());
     }
 }
