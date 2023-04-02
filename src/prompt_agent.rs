@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use anyhow::Context;
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use clap::Parser;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -56,7 +55,7 @@ impl PromptAgent {
         let provider: Box<dyn Provider> = provider_name.get_provider_instance(provider_key);
 
         // Will match YYYY-MM-DD. Ex: 2023-03-31
-        let date_time_regex = Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap(); // TODO: think of 2023-3-31
+        let date_time_regex = Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap();
 
         println!(
             "Provider {} will be used.",
@@ -81,30 +80,25 @@ impl PromptAgent {
 
     pub fn process_command(&mut self, command: InputCommand) -> anyhow::Result<()> {
         match command {
-            InputCommand::Get(space_time_config) => {
-                let timestamp = match space_time_config.date {
-                    Some(ref date) if !self.date_time_regex.is_match(date) => {
-                        eprintln!("Entered date should be in the YYYY-MM-DD format. Forecast for the current time is retrieved");
-                        None
-                    }
-                    Some(ref date) => {
-                        let date = NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|err| {
-                            eprintln!("Error: {}\nEntered date should be in the YYYY-MM-DD format. Forecast for the current time is retrieved", err);
-                            err
-                        })?;
-                        let midday_datetime =
-                            NaiveDateTime::new(date, NaiveTime::from_hms_opt(12, 0, 0).unwrap());
-                        Some(midday_datetime.timestamp())
-                    }
-                    None => None,
-                };
-
-                let weather = self
-                    .current_provider
-                    .get_weather(timestamp, &space_time_config.address)?;
-                println!("{}", serde_json::to_string_pretty(&weather)?);
-                Ok(())
-            }
+            InputCommand::Get(space_time_config) => match space_time_config.date {
+                Some(ref date) if !self.date_time_regex.is_match(date) => Err(anyhow::anyhow!(
+                    "Entered date should be in the YYYY-MM-DD format"
+                )),
+                Some(ref date) => {
+                    let weather = self
+                        .current_provider
+                        .get_timed_weather(&space_time_config.address, date)?;
+                    println!("{}", serde_json::to_string_pretty(&weather)?);
+                    Ok(())
+                }
+                None => {
+                    let weather = self
+                        .current_provider
+                        .get_current_weather(&space_time_config.address)?;
+                    println!("{}", serde_json::to_string_pretty(&weather)?);
+                    Ok(())
+                }
+            },
             InputCommand::Configure(provider_name) => {
                 if provider_name == self.current_provider_name {
                     println!(

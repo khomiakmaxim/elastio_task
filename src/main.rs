@@ -16,7 +16,7 @@ fn main() -> anyhow::Result<()> {
         match command {
             Ok(command) => {
                 if let Err(err) = agent.process_command(command) {
-                    eprintln!("Error: {}. Please, see help and try again!", err);
+                    eprintln!("Error: {}. Please, try again!", err);
                 }
             }
             Err(err) => match err.kind() {
@@ -24,7 +24,7 @@ fn main() -> anyhow::Result<()> {
                     eprintln!("{}", err)
                 }
                 _ => {
-                    eprintln!("Error: {}. Please, see help and try again!", err);
+                    eprintln!("Error: {}. Please, try again!", err);
                 }
             },
         }

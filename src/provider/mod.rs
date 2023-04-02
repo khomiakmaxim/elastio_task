@@ -30,7 +30,7 @@ impl ProviderName {
     pub fn get_provider_instance(&self, api_key: String) -> Box<dyn Provider> {
         match *self {
             ProviderName::OpenWeatherMap => {
-                Box::new(open_weather_api::OpenWeatherApi::new(api_key))
+                Box::new(open_weather_map::OpenWeatherApi::new(api_key))
             }
             ProviderName::WeatherApi => Box::new(weather_api::WeatherApi::new(api_key)),
         }
@@ -38,13 +38,14 @@ impl ProviderName {
 }
 
 pub trait Provider {
-    fn get_weather(
+    fn get_current_weather(&self, address: &str) -> anyhow::Result<serde_json::Value>;
+    fn get_timed_weather(
         &self,
-        timestamp: Option<i64>,
         address: &str,
+        date: &str, //Option<i64>,
     ) -> anyhow::Result<serde_json::Value>;
 }
 
 // TODO: add 2 more providers
-pub mod open_weather_api;
+pub mod open_weather_map;
 pub mod weather_api;
