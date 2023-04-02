@@ -45,19 +45,19 @@ impl OpenWeatherApi {
         let location = response
             .as_array()
             .ok_or_else(|| {
-                anyhow::anyhow!("open-weather-api returned an invalid response format.")
+                anyhow::anyhow!("open-weather-api returned an invalid response format")
             })?
             .get(0)
-            .ok_or_else(|| anyhow::anyhow!("No location data found in API response."))?;
+            .ok_or_else(|| anyhow::anyhow!("No location data found in API response"))?;
 
         let longitude = location
             .get("lon")
-            .ok_or_else(|| anyhow::anyhow!("Missing longitude value from API."))?
+            .ok_or_else(|| anyhow::anyhow!("Missing longitude value from API"))?
             .to_string();
 
         let latitude = location
             .get("lat")
-            .ok_or_else(|| anyhow::anyhow!("Missing latitude value from API."))?
+            .ok_or_else(|| anyhow::anyhow!("Missing latitude value from API"))?
             .to_string();
 
         Ok(Coordinates {
@@ -80,7 +80,7 @@ impl OpenWeatherApi {
             }
         }
 
-        Err(anyhow::anyhow!("open-weather-api returned an invalid response. Please make sure your request has a valid date and try again."))
+        Err(anyhow::anyhow!("open-weather-api returned an invalid response. Make sure your request has a valid date"))
     }
 
     fn get_current_weather_data(&self, coords: &Coordinates) -> anyhow::Result<serde_json::Value> {
@@ -91,7 +91,7 @@ impl OpenWeatherApi {
             Ok(current.to_owned())
         } else {
             Err(anyhow::anyhow!(
-                "open-weather-api returned an invalid response."
+                "open-weather-api returned an invalid response"
             ))
         }
     }
