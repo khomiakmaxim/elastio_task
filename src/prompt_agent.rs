@@ -8,86 +8,90 @@ use strum::IntoEnumIterator;
 
 use crate::provider::{Provider, ProviderName};
 
+static APP_NAME: &str = "elastio_task";
+
+#[derive(Parser, Debug)]
+#[command(about = "Forecasts and displays past weather")]
+struct Application {
+    #[command(subcommand)]
+    command: InputSubcommand,
+}
+
+#[derive(Parser, Debug, Clone)]
+#[clap(author, version, about)]
+// TODO: possibly add provider list
+pub enum InputSubcommand {
+    #[clap(subcommand)]
+    Configure(ProviderName),
+    Get(SpaceTimeConfig),
+    CurrentProvider,
+}
+
 #[derive(clap::Args, Debug, Clone, Serialize, Deserialize)]
 pub struct SpaceTimeConfig {
     pub address: String,
     pub date: Option<String>,
 }
 
-#[derive(Parser, Debug, Clone)]
-#[clap(author, version, about)]
-pub enum InputCommand {
-    #[clap(subcommand)]
-    Configure(ProviderName),
-    Get(SpaceTimeConfig),
+#[derive(Serialize, Deserialize, Debug, Default)]
+struct ApplicationConfig {
+    provider_name: ProviderName,
 }
 
 pub struct PromptAgent {
     current_provider: Box<dyn Provider>, // TODO: Check for other polymorphic solutions
     current_provider_name: ProviderName,
-    available_providers: HashMap<ProviderName, String>,
-    date_time_regex: Regex,
 }
 
 impl PromptAgent {
     pub fn new() -> anyhow::Result<Self> {
-        let mut api_pairs = HashMap::<ProviderName, String>::new();
+        let config: Result<ApplicationConfig, confy::ConfyError> = confy::load(APP_NAME, None);
 
-        for provider_name in ProviderName::iter() {
-            let api_key = std::env::var(provider_name.to_string()).with_context(|| {
-                format!("Failed to get api key for {} provider. Check .env file in the current folder or contact the developers.", provider_name)
-            })?;
-            api_pairs.insert(provider_name, api_key);
-        }
+        let provider_name = match config {
+            Ok(config) => config.provider_name,
+            Err(err) => return Err(anyhow::anyhow!("Failed to retrieve config: {}", err)),
+        };
 
-        let default_provider_name = ProviderName::default();
-        let (provider_name, provider_key) = api_pairs
-            .get(&default_provider_name)
-            .map(|key| (default_provider_name.to_owned(), key.to_owned()))
-            .unwrap_or_else(|| {
-                api_pairs
-                    .iter()
-                    .next()
-                    .map(|(name, key)| (name.to_owned(), key.to_owned()))
-                    .unwrap()
-            });
+        let available_providers = Self::get_available_providers()?;
+        let (provider_name, provider_key) =
+            if let Some(key) = available_providers.get(&provider_name) {
+                (provider_name.to_owned(), key.to_owned())
+            } else if let Some((name, key)) = available_providers.iter().next() {
+                (name.to_owned(), key.to_owned())
+            } else {
+                return Err(anyhow::anyhow!(
+                    "Failed to retrieve default provider. Check .env file in the current folder"
+                ));
+            };
 
         let provider: Box<dyn Provider> = provider_name.get_provider_instance(provider_key);
-
-        // Will match YYYY-MM-DD. Ex: 2023-03-31
-        let date_time_regex = Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap();
-
-        println!(
-            "Provider {} will be used.",
-            provider_name.to_string().to_lowercase().replace('_', "-")
-        );
 
         Ok(PromptAgent {
             current_provider: provider,
             current_provider_name: provider_name,
-            available_providers: api_pairs,
-            date_time_regex,
         })
     }
 
-    pub fn parse_command(&self) -> Result<InputCommand, clap::Error> {
-        let mut line = String::default();
-        let stdin = std::io::stdin();
-        stdin.read_line(&mut line)?;
-        let tokens: Vec<&str> = line.split_whitespace().collect();
-        InputCommand::try_parse_from(tokens)
+    pub fn parse_command(&self) -> anyhow::Result<()> {
+        let command = Application::parse();        
+        self.process_command(command)
     }
 
-    pub fn process_command(&mut self, command: InputCommand) -> anyhow::Result<()> {
-        match command {
-            InputCommand::Get(space_time_config) => match space_time_config.date {
-                Some(ref date) if !self.date_time_regex.is_match(date) => Err(anyhow::anyhow!(
+    // TODO: This can be tested properly
+    fn process_command(&self, command: Application) -> anyhow::Result<()> {
+        let date_time_regex = Regex::new(r"^\d{4}-\d{2}-\d{2}$").expect(
+            "Failed during regular expression initialization. Contact developers for proceeding.",
+        );
+        match command.command {
+            InputSubcommand::Get(space_time_config) => match space_time_config.date {
+                Some(ref date) if date_time_regex.is_match(date) => Err(anyhow::anyhow!(
                     "Entered date should be in the YYYY-MM-DD format"
                 )),
                 Some(ref date) => {
                     let weather = self
                         .current_provider
                         .get_timed_weather(&space_time_config.address, date)?;
+
                     println!("{}", serde_json::to_string_pretty(&weather)?);
                     Ok(())
                 }
@@ -95,34 +99,74 @@ impl PromptAgent {
                     let weather = self
                         .current_provider
                         .get_current_weather(&space_time_config.address)?;
+
                     println!("{}", serde_json::to_string_pretty(&weather)?);
+
                     Ok(())
                 }
             },
-            InputCommand::Configure(provider_name) => {
+            InputSubcommand::Configure(provider_name) => {
                 if provider_name == self.current_provider_name {
                     println!(
-                        "Provider {} is already in use.",
-                        self.current_provider_name
-                            .to_string()
-                            .to_lowercase()
-                            .replace('_', "-")
+                        "-- Provider {} is already in use.",
+                        self.current_provider_name.get_pretty_name()
                     );
                 } else {
-                    let api_key = self.available_providers.get(&provider_name).expect("Couldn't retrieve api key for current provider. Contact developers for proceeding.");
                     println!(
-                        "Changing provider: {} => {}.",
-                        self.current_provider_name
-                            .to_string()
-                            .to_lowercase()
-                            .replace('_', "-"),
-                        provider_name.to_string().to_lowercase().replace('_', "-")
+                        "-- Changing provider: {} => {}.",
+                        self.current_provider_name.get_pretty_name(),
+                        provider_name.get_pretty_name()
                     );
-                    self.current_provider = provider_name.get_provider_instance(api_key.to_owned());
+
+                    match confy::store(APP_NAME, None, ApplicationConfig { provider_name }) {
+                        Ok(_) => {
+                            println!("-- Provider was successfully changed.");
+                        }
+                        Err(err) => {
+                            return Err(anyhow::anyhow!(
+                                "There was an issue while updating configuration file: {}",
+                                err
+                            ));
+                        }
+                    }
                 }
 
                 Ok(())
             }
+            InputSubcommand::CurrentProvider => {
+                println!(
+                    "-- Current provider: {}.",
+                    self.current_provider_name.get_pretty_name()
+                );
+                Ok(())
+            }
         }
+    }
+
+    fn get_available_providers() -> anyhow::Result<HashMap<ProviderName, String>> {
+        let mut available_providers = HashMap::<ProviderName, String>::new();
+
+        for provider_name in ProviderName::iter() {
+            let api_key = std::env::var(provider_name.to_string()).with_context(|| {
+                format!(
+                    "Failed to get api key for {} provider. Check .env file in the current folder",
+                    provider_name
+                )
+            })?;
+            available_providers.insert(provider_name, api_key);
+        }
+
+        Ok(available_providers)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_get_available_providers() {
+        let available_providers = PromptAgent::get_available_providers().unwrap();        
+        assert!(available_providers.contains_key(&ProviderName::default()));
     }
 }

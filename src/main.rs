@@ -1,32 +1,22 @@
-use anyhow::Context;
-use clap::error::ErrorKind;
 use dotenvy::dotenv;
 
 use elastio_task::prompt_agent::PromptAgent;
 
-fn main() -> anyhow::Result<()> {
+fn main() {
     dotenv().ok();
-    let mut agent = PromptAgent::new().context(
-        "There was an issue during elastio_task initialization. Contact developers for proceeding.",
-    )?;
-
-    loop {
-        let command = agent.parse_command();
-
-        match command {
-            Ok(command) => {
-                if let Err(err) = agent.process_command(command) {
-                    eprintln!("Error: {}. Please, try again!", err);
-                }
-            }
-            Err(err) => match err.kind() {
-                ErrorKind::DisplayHelp => {
-                    eprintln!("{}", err)
-                }
-                _ => {
-                    eprintln!("Error: {}. Please, try again!", err);
-                }
-            },
+    let agent = match PromptAgent::new() {
+        Ok(agent) => agent,
+        Err(err) => {
+            eprintln!(
+                "Error: Command crashed during initalization steps: {}. Contact developers for proceeding.",
+                err
+            );
+            std::process::exit(1);
         }
+    };
+
+    if let Err(err) = agent.parse_command() {
+        eprintln!("Error: {}.", err);
+        std::process::exit(1);
     }
 }

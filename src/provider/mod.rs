@@ -35,6 +35,10 @@ impl ProviderName {
             ProviderName::WeatherApi => Box::new(weather_api::WeatherApi::new(api_key)),
         }
     }
+
+    pub fn get_pretty_name(&self) -> String {
+        self.to_string().to_ascii_lowercase().replace('_', "-")
+    }
 }
 
 pub trait Provider {

@@ -9,6 +9,7 @@ edition = "2021"
 anyhow = "1.0.70"
 chrono = "0.4.24"
 clap = { version = "4.1.13", features = ["derive"] }
+confy = "0.5.1"
 dotenvy = "0.15.7"
 lazy_static = "1.4.0"
 regex = "1.7.3"
