@@ -1,3 +1,4 @@
+//! Provider implementation, powered by <https://www.weatherapi.com>.
 use anyhow::Context;
 use chrono::{Local, NaiveDate};
 use reqwest::blocking::Client;
@@ -11,7 +12,7 @@ static TIMEOUT_SECONDS: u64 = 5;
 static WEATHER_API_ERROR: &str = "weather-api returned invalid data. \
         If your input is correct, this might be caused by limitations of current provider";
 
-// Powered by https://www.weatherapi.com
+/// Concrete structure, which implements 'Provider' trait for weather-api API requests.
 pub struct WeatherApi {
     api_key: String,
     https_client: Client,
@@ -67,11 +68,21 @@ struct ConditionInfo {
 }
 
 impl Provider for WeatherApi {
+    /// Implementation of 'Provider' trait method. Returns the required JSON object in a readable format.
+    /// 
+    /// # Errors:
+    /// 
+    /// Backpropagates in case of invalid 'address', or API limitations.
     fn get_current_weather(&self, address: &str) -> anyhow::Result<String> {
         let response = self.get_current_weather_data(address)?;
         Ok(response)
     }
 
+    /// Implementation of 'Provider' trait method. Returns the required JSON object in a readable format.
+    /// 
+    /// # Errors:
+    /// 
+    /// Backpropagates in case of invalid 'address' or 'date' or API limitations.
     fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<String> {
         let response = self.get_timed_weather_data(address, date)?;
         Ok(response)

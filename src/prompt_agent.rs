@@ -1,3 +1,5 @@
+//! Module for managing user and provider's communication.
+
 use std::collections::HashMap;
 
 use anyhow::Context;
@@ -12,11 +14,13 @@ static APP_NAME: &str = "ELASTIO_TASK";
 
 #[derive(Parser, Debug)]
 #[command(about = "Forecasts and displays present and past weather.")]
+/// Structure for mapping input subcommand 'get' configuration.
 struct Application {
     #[command(subcommand)]
     command: InputSubcommand,
 }
 
+/// Enumeration for possible input subcommand variants.
 #[derive(Parser, Debug, Clone)]
 #[clap(author, version, about)]
 pub enum InputSubcommand {
@@ -27,27 +31,34 @@ pub enum InputSubcommand {
     /// Gets apporpriate weather data, based on address and date(YYYY-MM-DD), if provided, and current weather, if not.
     /// Example: get "L'aquila, Italy" 2023-04-07
     Get(SpaceTimeConfig),
-    /// Displays currently used provider    
+    /// Displays currently used provider.
     CurrentProvider,
 }
 
+/// Structure for mapping input configuration for 'get' subcommand.
 #[derive(clap::Args, Debug, Clone, Serialize, Deserialize)]
 pub struct SpaceTimeConfig {
     pub address: String,
     pub date: Option<String>,
 }
 
+/// Structure for retrieving stored provider from configuration file.
 #[derive(Serialize, Deserialize, Debug, Default)]
 struct ApplicationConfig {
     provider_name: ProviderName,
 }
-/// Entity, which is responsible for managing provider's and users communication
+
+/// Entity, which is responsible for managing provider's and users communication.
 pub struct PromptAgent {
     current_provider: Box<dyn Provider>,
     current_provider_name: ProviderName,
 }
 
 impl PromptAgent {
+    /// Creates new entity of PromptAgent structure with stored\default provider as a trait object.
+    /// 
+    /// # Errors:
+    /// Backpropagates error in case of invalid .env file configuration.
     pub fn new() -> anyhow::Result<Self> {
         let config: Result<ApplicationConfig, confy::ConfyError> = confy::load(APP_NAME, None);
 
@@ -59,7 +70,7 @@ impl PromptAgent {
         let available_providers = Self::get_available_providers()?;
         let provider_key = available_providers
             .get(&provider_name)
-            .expect("Couldn't retrieve required api_key")
+            .ok_or_else(|| anyhow::anyhow!("Couldn't retrieve required api_key"))?
             .to_owned();
 
         let provider: Box<dyn Provider> = provider_name.get_provider_instance(provider_key);
@@ -70,11 +81,15 @@ impl PromptAgent {
         })
     }
 
+    /// Performs CLI input parsing and prints the output to the console.
+    /// 
+    /// # Errors: 
+    /// Backpropagates errors in case of API modification\limitation or invalid input.
     pub fn parse_command(&self) -> anyhow::Result<()> {
         let command = Application::parse();
         self.process_command(command)
     }
-
+    
     fn process_command(&self, command: Application) -> anyhow::Result<()> {
         let date_time_regex = Regex::new(r"^\d{4}-\d{2}-\d{2}$")
             .expect("Failed during regular expression initialization");

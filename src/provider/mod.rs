@@ -1,13 +1,12 @@
+//! Module for performing specific API requests. Scales for new providers.
 use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 
-///To add another provider, do the following:
-/// 1. Add and declare in the bottom of this file module with valid Provider trait implementation
-/// 2. Add representative variant in ProviderName enumeration
-/// 3. Add appropriate match expression hand in get_provider_instance() method in the current file
-/// 4. Add YOUR_NEW_PROVIDER_API_NAME={api_key} line in the .env file, preserving case and style for YOUR_NEW_PROVIDER_API_NAME
+/// General provider trait, used in dynamic dispatch
 pub trait Provider {
+    /// Trait method for retrieving weather, which is currently at the 'address', which is specified    
     fn get_current_weather(&self, address: &str) -> anyhow::Result<String>;
+    /// Trait method for retrieving weather, which was\will be at the 'address', which is specified and on the 'date', which is also specified    
     fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<String>;
 }
 
@@ -25,6 +24,7 @@ pub trait Provider {
     Eq,
 )]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+/// Enumeration which represents a set of possible providers and which also provides functionality for creating dynamically dispatched providers.
 pub enum ProviderName {
     OpenWeatherMap,
     WeatherApi,
@@ -37,6 +37,7 @@ impl Default for ProviderName {
 }
 
 impl ProviderName {
+    /// Returns a dynamically dispatched instance of a provider that implements the `Provider` trait, based on the `ProviderName` variant and the respective `api_key`.
     pub fn get_provider_instance(&self, api_key: String) -> Box<dyn Provider> {
         match *self {
             ProviderName::OpenWeatherMap => {
@@ -45,7 +46,17 @@ impl ProviderName {
             ProviderName::WeatherApi => Box::new(weather_api::WeatherApi::new(api_key)),
         }
     }
-
+    
+    /// Returns a pretty name of encoded 'ProviderName' in .env file.
+    /// 
+    /// # Examples
+    /// ```
+    /// use elastio_task::provider::ProviderName;
+    /// 
+    /// let provider_name = ProviderName::OpenWeatherMap;
+    /// assert_eq!(provider_name.to_string(), "OPEN_WEATHER_MAP");
+    /// assert_eq!(provider_name.get_pretty_name(), "open-weather-map");
+    /// ```
     pub fn get_pretty_name(&self) -> String {
         self.to_string().to_ascii_lowercase().replace('_', "-")
     }

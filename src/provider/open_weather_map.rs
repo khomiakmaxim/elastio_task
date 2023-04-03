@@ -1,3 +1,5 @@
+//! Provider implementation, powered by <https://openweathermap.org>.
+
 use anyhow::Context;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use reqwest::blocking::Client;
@@ -9,7 +11,7 @@ use super::Provider;
 
 static TIMEOUT_SECONDS: u64 = 5;
 
-/// Powered by https://openweathermap.org
+/// Concrete structure, which implements 'Provider' trait for open-weather-map API requests.
 pub struct OpenWeatherMap {
     https_client: Client,
     api_key: String,
@@ -53,6 +55,11 @@ struct ConditionInfo {
 }
 
 impl Provider for OpenWeatherMap {
+    /// Implementation of 'Provider' trait method. Returns the required JSON object in a readable format.
+    /// 
+    /// # Errors:
+    /// 
+    /// Backpropagates in case of invalid 'address', or API limitations.
     fn get_current_weather(&self, address: &str) -> anyhow::Result<String> {
         let place_coords = self.get_coordinates_per_place(address)?;
         let response = self.get_current_weather_parsed_data(&place_coords)?;
@@ -60,6 +67,11 @@ impl Provider for OpenWeatherMap {
         Ok(response)
     }
 
+    /// Implementation of 'Provider' trait method. Returns the required JSON object in a readable format.
+    /// 
+    /// # Errors:
+    /// 
+    /// Backpropagates in case of invalid 'address' or 'date' or API limitations.
     fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<String> {
         let datetime = NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|err| {
             eprintln!(
@@ -85,6 +97,7 @@ impl Provider for OpenWeatherMap {
 }
 
 impl OpenWeatherMap {
+    /// Creates new entity of open-weather-map provider with set api_key.
     pub fn new(api_key: String) -> OpenWeatherMap {
         let https_client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(TIMEOUT_SECONDS))

@@ -1,5 +1,4 @@
 use dotenvy::dotenv;
-
 use elastio_task::prompt_agent::PromptAgent;
 
 fn main() {
