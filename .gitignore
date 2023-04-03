@@ -1,8 +1,8 @@
-
 # Ignore everything in the target directory
 /target/*
 
-# Except for the elastio_task documentation directory
-!/target/doc/elastio_task
+# Except for the elastio_task directory and all of its contents
+!/target/doc/elastio_task/
+!/target/doc/elastio_task/**
 
 .env
