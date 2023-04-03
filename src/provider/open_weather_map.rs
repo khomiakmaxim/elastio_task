@@ -183,6 +183,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_get_weather_current() {
         let provider = OpenWeatherApi::new(API_KEY.to_string());
         let weather = provider.get_current_weather("Mykolaiv, Lviv oblast, Ukraine");
@@ -190,6 +191,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_get_weather_current_invalid_address() {
         let provider = OpenWeatherApi::new(API_KEY.to_string());
         let weather = provider.get_current_weather("SO INVALID ADDRESS");
@@ -197,6 +199,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_get_weather_timed() {
         let provider = OpenWeatherApi::new(API_KEY.to_string());
         let date = "2022-04-02";
@@ -205,6 +208,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_get_weather_timed_invalid_timestamp() {
         let provider = OpenWeatherApi::new(API_KEY.to_string());
         let date = "988-04-01";

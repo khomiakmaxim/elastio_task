@@ -8,7 +8,7 @@ fn main() {
         Ok(agent) => agent,
         Err(err) => {
             eprintln!(
-                "Error: Command crashed during initalization steps: {}. Contact developers for proceeding.",
+                "Error: Command crashed during initialization steps: {}. Contact developers for proceeding.",
                 err
             );
             std::process::exit(1);

@@ -24,7 +24,7 @@ pub enum InputSubcommand {
     /// Example: configure weather-api (open-weather-map is default)
     #[clap(subcommand)]
     Configure(ProviderName),
-    /// Gets apporpriate weather data, based on address and date(YYYY-MM-DD), if provided, and current weather if not.
+    /// Gets apporpriate weather data, based on address and date(YYYY-MM-DD), if provided, and current weather, if not.
     /// Example: get "L'aquila, Italy" 2023-04-07
     Get(SpaceTimeConfig),
     /// Displays currently used provider    
@@ -166,7 +166,8 @@ impl PromptAgent {
 
 #[cfg(test)]
 mod test {
-    use dotenvy::dotenv;
+    use chrono::{Duration, Utc};
+    use dotenvy::dotenv;    
 
     use super::*;
 
@@ -174,6 +175,145 @@ mod test {
     fn test_get_available_providers() {
         dotenv().ok();
         let available_providers = PromptAgent::get_available_providers().unwrap();
-        assert!(available_providers.contains_key(&ProviderName::default()));
+        for provider in ProviderName::iter() {
+            assert!(available_providers.contains_key(&provider));
+        }
     }
+
+    #[test]
+    #[ignore]
+    fn test_parse_command_get_current_weather() {
+        dotenv().ok();
+        let agent = PromptAgent::new().unwrap();
+        let space_time_config = SpaceTimeConfig {
+            address: String::from("L'aquila, Italy"),
+            date: None,
+        };
+
+        let result = agent.process_command(Application {
+            command: InputSubcommand::Get(space_time_config),
+        });
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_process_command_get_timed_tommorow_weather() {
+        dotenv().ok();
+        let agent = PromptAgent::new().unwrap();
+
+        let now = Utc::now();
+        let tomorrow = now + Duration::days(1);
+        let formatted_tomorrow = tomorrow.format("%Y-%m-%d");
+
+        let space_time_config = SpaceTimeConfig {
+            address: String::from("Palermo, Italy"),
+            date: Some(formatted_tomorrow.to_string()),
+        };
+        let result = agent.process_command(Application {
+            command: InputSubcommand::Get(space_time_config),
+        });
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_process_command_get_timed_yesterday_weather() {
+        dotenv().ok();
+        let agent = PromptAgent::new().unwrap();
+
+        let now = Utc::now();
+        let tomorrow = now - Duration::days(1);
+        let formatted_tomorrow = tomorrow.format("%Y-%m-%d");
+
+        let space_time_config = SpaceTimeConfig {
+            address: String::from("Palermo, Italy"),
+            date: Some(formatted_tomorrow.to_string()),
+        };
+        let result = agent.process_command(Application {
+            command: InputSubcommand::Get(space_time_config),
+        });
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_process_invalid_address() {
+        dotenv().ok();
+        let agent = PromptAgent::new().unwrap();
+
+        let space_time_config = SpaceTimeConfig {
+            address: String::from("SO INVALID ADDRESS"),
+            date: None,
+        };
+
+        let result = agent.process_command(Application {
+            command: InputSubcommand::Get(space_time_config),
+        });
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_process_invalid_date() {
+        dotenv().ok();
+        let agent = PromptAgent::new().unwrap();
+
+        let space_time_config = SpaceTimeConfig {
+            address: String::from("São Paulo"),
+            date: Some(String::from("1800-12-12")),
+        };
+
+        let result = agent.process_command(Application {
+            command: InputSubcommand::Get(space_time_config),
+        });
+
+        assert!(result.is_err());
+    }
+
+    #[test]    
+    fn test_process_command_configure() {
+        dotenv().ok();
+        let agent = PromptAgent::new().unwrap();
+        let current_provider = agent.current_provider_name.clone();
+
+        let result = agent.process_command(Application {
+            command: InputSubcommand::Configure(ProviderName::OpenWeatherMap),
+        });
+        assert!(result.is_ok());        
+
+        let result = agent.process_command(Application {
+            command: InputSubcommand::Configure(current_provider),
+        });
+        assert!(result.is_ok());
+    }
+
+    #[test]    
+    fn test_process_command_current_provider() {
+        dotenv().ok();
+        let agent = PromptAgent::new().unwrap();
+        let result = agent.process_command(Application {
+            command: InputSubcommand::CurrentProvider,
+        });
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_process_command_with_invalid_date_format() {
+        dotenv().ok();
+        let agent = PromptAgent::new().unwrap();
+
+        let space_time_config = SpaceTimeConfig {
+            address: String::from("São Paulo"),
+            date: Some(String::from("2000-12-32")),
+        };
+
+        let result = agent.process_command(Application {
+            command: InputSubcommand::Get(space_time_config),
+        });
+
+        assert!(result.is_err());
+    }
+
 }
