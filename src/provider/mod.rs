@@ -40,7 +40,7 @@ impl ProviderName {
     pub fn get_provider_instance(&self, api_key: String) -> Box<dyn Provider> {
         match *self {
             ProviderName::OpenWeatherMap => {
-                Box::new(open_weather_map::OpenWeatherApi::new(api_key))
+                Box::new(open_weather_map::OpenWeatherMap::new(api_key))
             }
             ProviderName::WeatherApi => Box::new(weather_api::WeatherApi::new(api_key)),
         }

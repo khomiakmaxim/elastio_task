@@ -10,7 +10,7 @@ use super::Provider;
 static TIMEOUT_SECONDS: u64 = 5;
 
 /// Powered by https://openweathermap.org
-pub struct OpenWeatherApi {
+pub struct OpenWeatherMap {
     https_client: Client,
     api_key: String,
 }
@@ -52,7 +52,7 @@ struct ConditionInfo {
     description: String,
 }
 
-impl Provider for OpenWeatherApi {
+impl Provider for OpenWeatherMap {
     fn get_current_weather(&self, address: &str) -> anyhow::Result<String> {
         let place_coords = self.get_coordinates_per_place(address)?;
         let response = self.get_current_weather_parsed_data(&place_coords)?;
@@ -84,14 +84,14 @@ impl Provider for OpenWeatherApi {
     }
 }
 
-impl OpenWeatherApi {
-    pub fn new(api_key: String) -> OpenWeatherApi {
+impl OpenWeatherMap {
+    pub fn new(api_key: String) -> OpenWeatherMap {
         let https_client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(TIMEOUT_SECONDS))
             .build()
             .expect("Unable to build HTTPS client for open-weather-map provider. Contact developers for proceeding.");
 
-        OpenWeatherApi {
+        OpenWeatherMap {
             https_client,
             api_key,
         }
@@ -134,11 +134,7 @@ impl OpenWeatherApi {
         let response = self
             .get_response(url.as_str())?
             .json::<CurrentWeatherData>()
-            .with_context(|| {
-                anyhow::anyhow!(
-                    "open-weather-map returned invalid data"
-                )
-            })?;
+            .with_context(|| anyhow::anyhow!("open-weather-map returned invalid data"))?;
 
         Ok(serde_json::to_string_pretty(&response)?)
     }
@@ -165,13 +161,12 @@ impl OpenWeatherApi {
     }
 }
 
-// These all tests must be integral, not unit
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     use crate::provider::ProviderName;
+    use chrono::{Duration, Utc};
     use dotenvy::dotenv;
 
     lazy_static::lazy_static! {
@@ -184,33 +179,56 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn test_get_weather_current() {
-        let provider = OpenWeatherApi::new(API_KEY.to_string());
+    fn test_get_open_weather_map_current() {
+        let provider = OpenWeatherMap::new(API_KEY.to_string());
         let weather = provider.get_current_weather("Mykolaiv, Lviv oblast, Ukraine");
         assert!(weather.is_ok());
     }
 
     #[test]
     #[ignore]
-    fn test_get_weather_current_invalid_address() {
-        let provider = OpenWeatherApi::new(API_KEY.to_string());
+    fn test_get_open_weather_map_current_invalid_address() {
+        let provider = OpenWeatherMap::new(API_KEY.to_string());
         let weather = provider.get_current_weather("SO INVALID ADDRESS");
         assert!(weather.is_err());
     }
 
     #[test]
     #[ignore]
-    fn test_get_weather_timed() {
-        let provider = OpenWeatherApi::new(API_KEY.to_string());
-        let date = "2022-04-02";
-        let weather = provider.get_timed_weather("Mykolaiv, Lviv oblast, Ukraine", date);
+    fn test_get_open_weather_map_get_timed_yesterday_weather() {
+        let provider = OpenWeatherMap::new(API_KEY.to_string());
+
+        let now = Utc::now();
+        let yesterday = now - Duration::days(1);
+        let formatted_yesterday = yesterday.format("%Y-%m-%d");
+
+        let weather = provider.get_timed_weather(
+            "Mykolaiv, Lviv oblast, Ukraine",
+            &formatted_yesterday.to_string(),
+        );
         assert!(weather.is_ok());
     }
 
     #[test]
     #[ignore]
-    fn test_get_weather_timed_invalid_timestamp() {
-        let provider = OpenWeatherApi::new(API_KEY.to_string());
+    fn test_get_open_weather_map_get_timed_tommorow_weather() {
+        let provider = OpenWeatherMap::new(API_KEY.to_string());
+
+        let now = Utc::now();
+        let tommorow = now + Duration::days(1);
+        let formatted_tommorow = tommorow.format("%Y-%m-%d");
+
+        let weather = provider.get_timed_weather(
+            "Mykolaiv, Lviv oblast, Ukraine",
+            &formatted_tommorow.to_string(),
+        );
+        assert!(weather.is_ok());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_get_open_weather_map_timed_invalid_timestamp() {
+        let provider = OpenWeatherMap::new(API_KEY.to_string());
         let date = "988-04-01";
         let result = provider.get_timed_weather("Mykolaiv, Lviv oblast, Ukraine", date);
         assert!(result.is_err());

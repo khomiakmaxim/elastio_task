@@ -167,7 +167,7 @@ impl PromptAgent {
 #[cfg(test)]
 mod test {
     use chrono::{Duration, Utc};
-    use dotenvy::dotenv;    
+    use dotenvy::dotenv;
 
     use super::*;
 
@@ -272,7 +272,7 @@ mod test {
         assert!(result.is_err());
     }
 
-    #[test]    
+    #[test]
     fn test_process_command_configure() {
         dotenv().ok();
         let agent = PromptAgent::new().unwrap();
@@ -281,7 +281,7 @@ mod test {
         let result = agent.process_command(Application {
             command: InputSubcommand::Configure(ProviderName::OpenWeatherMap),
         });
-        assert!(result.is_ok());        
+        assert!(result.is_ok());
 
         let result = agent.process_command(Application {
             command: InputSubcommand::Configure(current_provider),
@@ -289,7 +289,7 @@ mod test {
         assert!(result.is_ok());
     }
 
-    #[test]    
+    #[test]
     fn test_process_command_current_provider() {
         dotenv().ok();
         let agent = PromptAgent::new().unwrap();
@@ -315,5 +315,4 @@ mod test {
 
         assert!(result.is_err());
     }
-
 }

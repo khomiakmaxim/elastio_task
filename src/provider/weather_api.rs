@@ -62,7 +62,7 @@ struct Day {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-struct ConditionInfo {    
+struct ConditionInfo {
     text: String,
 }
 
@@ -173,5 +173,69 @@ impl WeatherApi {
             .with_context(|| anyhow::anyhow!(WEATHER_API_ERROR))?;
 
         Ok(serde_json::to_string_pretty(&response)?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::provider::ProviderName;
+    use chrono::{Duration, Utc};
+    use dotenvy::dotenv;
+
+    lazy_static::lazy_static! {
+        static ref API_KEY: String = {
+            let provider_name = ProviderName::WeatherApi;
+            dotenv().ok();
+            std::env::var(provider_name.to_string()).expect(format!("{}_API_KEY not found in .env", provider_name).as_str())
+        };
+    }
+
+    #[test]
+    #[ignore]
+    fn test_get_open_weather_map_current() {
+        let provider = WeatherApi::new(API_KEY.to_string());
+        let weather = provider.get_current_weather("Mykolaiv, Lviv oblast, Ukraine");
+        assert!(weather.is_ok());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_get_open_weather_map_get_timed_yesterday_weather() {
+        let provider = WeatherApi::new(API_KEY.to_string());
+
+        let now = Utc::now();
+        let yesterday = now - Duration::days(1);
+        let formatted_yesterday = yesterday.format("%Y-%m-%d");
+
+        let weather =
+            provider.get_timed_weather("Odesa, Ukraine", &formatted_yesterday.to_string());
+        assert!(weather.is_ok());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_get_open_weather_map_get_timed_tommorow_weather() {
+        let provider = WeatherApi::new(API_KEY.to_string());
+
+        let now = Utc::now();
+        let tommorow = now + Duration::days(1);
+        let formatted_tommorow = tommorow.format("%Y-%m-%d");
+
+        let weather = provider.get_timed_weather(
+            "Mykolaiv, Lviv oblast, Ukraine",
+            &formatted_tommorow.to_string(),
+        );
+        assert!(weather.is_ok());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_get_open_weather_map_timed_invalid_timestamp() {
+        let provider = WeatherApi::new(API_KEY.to_string());
+        let date = "088-04-01";
+        let result = provider.get_timed_weather("Mykolaiv, Lviv oblast, Ukraine", date);
+        assert!(result.is_err());
     }
 }
