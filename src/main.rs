@@ -11,12 +11,11 @@ fn main() {
                 "Error: Command crashed during initalization steps: {}. Contact developers for proceeding.",
                 err
             );
-            std::process::exit(1);
+            return;
         }
     };
 
     if let Err(err) = agent.parse_command() {
-        eprintln!("Error: {}.", err);
-        std::process::exit(1);
+        eprintln!("Error: {}.", err);        
     }
 }

@@ -1,5 +1,7 @@
+use anyhow::Context;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use reqwest::blocking::Client;
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 use super::Provider;
@@ -11,21 +13,56 @@ pub struct OpenWeatherApi {
     https_client: Client,
     api_key: String,
 }
-
+#[derive(Serialize, Debug, Deserialize, Clone)]
 struct Coordinates {
-    longitude: String,
-    latitude: String,
+    lon: f64,
+    lat: f64,
+}
+#[derive(Debug, Deserialize, Serialize)]
+struct CurrentWeatherData {
+    lat: f64,
+    lon: f64,
+    timezone: String,
+    current: WeatherInfo,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct TimedWeatherData {
+    lat: f64,
+    lon: f64,
+    timezone: String,
+    data: Vec<WeatherInfo>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct WeatherInfo {
+    sunrise: i64,
+    sunset: i64,
+    temp: f64,
+    feels_like: f64,
+    pressure: i64,
+    humidity: i64,
+    dew_point: f64,
+    clouds: i64,
+    wind_speed: f64,
+    wind_deg: i64,
+    weather: Vec<ConditionInfo>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ConditionInfo {
+    main: String,
+    description: String,
 }
 
 impl Provider for OpenWeatherApi {
-    fn get_current_weather(&self, address: &str) -> anyhow::Result<serde_json::Value> {
+    fn get_current_weather(&self, address: &str) -> anyhow::Result<String> {
         let place_coords = self.get_coordinates_per_place(address)?;
-        let response = self.get_current_weather_data(&place_coords)?;
-
+        let response = self.get_current_weather_parsed_data(&place_coords)?;
         Ok(response)
     }
 
-    fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<serde_json::Value> {
+    fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<String> {
         let datetime = NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|err| {
             eprintln!(
                 "Error: {}\nEntered date should be in the YYYY-MM-DD format",
@@ -33,10 +70,15 @@ impl Provider for OpenWeatherApi {
             );
             err
         })?;
-        let midday_datetime =
-            NaiveDateTime::new(datetime, NaiveTime::from_hms_opt(12, 0, 0).unwrap()); // TODO: think of this unwrap()
+        let midday_datetime = NaiveDateTime::new(
+            datetime,
+            NaiveTime::from_hms_opt(12, 0, 0).expect(
+                "Failed during date-time initialization. Contact developers for proceeding.",
+            ),
+        );
         let place_coords = self.get_coordinates_per_place(address)?;
-        let response = self.get_timed_weather_data(&place_coords, midday_datetime.timestamp())?;
+        let response =
+            self.get_timed_weather_parsed_data(&place_coords, midday_datetime.timestamp())?;
         Ok(response)
     }
 }
@@ -53,11 +95,8 @@ impl OpenWeatherApi {
         }
     }
 
-    fn get_response(&self, uri: &str) -> reqwest::Result<serde_json::Value> {
-        self.https_client
-            .get(uri)
-            .send()?
-            .json::<serde_json::Value>()
+    fn get_response(&self, uri: &str) -> reqwest::Result<reqwest::blocking::Response> {
+        self.https_client.get(uri).send()
     }
 
     fn get_coordinates_per_place(&self, address: &str) -> anyhow::Result<Coordinates> {
@@ -66,61 +105,42 @@ impl OpenWeatherApi {
             address, self.api_key
         );
 
-        let response = self.get_response(&uri)?;
+        let response = self.get_response(&uri)?.json::<Vec<Coordinates>>()?;
 
-        let location = response
-            .as_array()
-            .ok_or_else(|| anyhow::anyhow!("open-weather-map returned an invalid response format. Please, consider changing provider"))?
-            .get(0)
-            .ok_or_else(|| anyhow::anyhow!("open-weather-map response has no location data. Please, consider changing provider"))?;
-
-        let longitude = location
-            .get("lon")
-            .ok_or_else(|| anyhow::anyhow!("open-weather-map response is missing longitude value. Please, consider changing provider"))?
-            .to_string();
-
-        let latitude = location
-            .get("lat")
-            .ok_or_else(|| anyhow::anyhow!("open-weather-map response is missing latitude value. Please, consider changing provider"))?
-            .to_string();
-
-        Ok(Coordinates {
-            longitude,
-            latitude,
-        })
-    }
-
-    fn get_current_weather_data(&self, coords: &Coordinates) -> anyhow::Result<serde_json::Value> {
-        let uri = format!("https://api.openweathermap.org/data/3.0/onecall?lat={}&lon={}&exclude=daily,minutely,hourly&appid={}&units=metric", coords.latitude, coords.longitude, self.api_key);
-        let response = self.get_response(&uri)?;
-
-        if let Some(current) = response.get("current") {
-            Ok(current.to_owned())
+        if let Some(coordinates) = response.get(0) {
+            Ok(coordinates.clone())
         } else {
-            Err(anyhow::anyhow!(
-                "open-weather-map returned an invalid response. Please, consider changing provider"
-            ))
+            Err(anyhow::anyhow!("No coordinates found for {}", address))
         }
     }
 
-    fn get_timed_weather_data(
+    fn get_current_weather_parsed_data(&self, coords: &Coordinates) -> anyhow::Result<String> {
+        let uri = format!("https://api.openweathermap.org/data/3.0/onecall?lat={}&lon={}&exclude=daily,minutely,hourly&appid={}&units=metric", coords.lat, coords.lon, self.api_key);
+        let response = self
+            .get_response(&uri)?
+            .json::<CurrentWeatherData>()
+            .with_context(|| {
+                anyhow::anyhow!(
+                    "open-weather-map returned invalid data. Please, consider changing provider"
+                )
+            })?;
+
+        Ok(serde_json::to_string_pretty(&response)?)
+    }
+
+    fn get_timed_weather_parsed_data(
         &self,
         coords: &Coordinates,
         timestamp: i64,
-    ) -> anyhow::Result<serde_json::Value> {
-        let uri = format!("https://api.openweathermap.org/data/3.0/onecall/timemachine?lat={}&lon={}&dt={}&appid={}&units=metric", coords.latitude, coords.longitude, timestamp, self.api_key);
-        let response = self.get_response(&uri)?;
+    ) -> anyhow::Result<String> {
+        let uri = format!("https://api.openweathermap.org/data/3.0/onecall/timemachine?lat={}&lon={}&dt={}&appid={}&units=metric", coords.lat, coords.lon, timestamp, self.api_key);
+        let response = self.get_response(&uri)?.json::<TimedWeatherData>().with_context(|| anyhow::anyhow!("open-weather-map returned inconsistent data. Make sure your request has a valid date"))?;
 
-        if let Some(data) = response.get("data").and_then(|d| d.as_array()) {
-            if let Some(first_data_point) = data.get(0) {
-                return Ok(first_data_point.to_owned());
-            }
-        }
-
-        Err(anyhow::anyhow!("open-weather-map returned an invalid response. Make sure your request has a valid date. If yes, consider changing provider"))
+        Ok(serde_json::to_string_pretty(&response)?)
     }
 }
 
+// These all tests must be integral, not unit
 #[cfg(test)]
 mod tests {
 

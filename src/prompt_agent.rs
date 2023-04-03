@@ -73,18 +73,18 @@ impl PromptAgent {
     }
 
     pub fn parse_command(&self) -> anyhow::Result<()> {
-        let command = Application::parse();        
+        let command = Application::parse();
         self.process_command(command)
     }
 
-    // TODO: This can be tested properly
+    // TODO: This can be properly tested
     fn process_command(&self, command: Application) -> anyhow::Result<()> {
         let date_time_regex = Regex::new(r"^\d{4}-\d{2}-\d{2}$").expect(
             "Failed during regular expression initialization. Contact developers for proceeding.",
         );
         match command.command {
             InputSubcommand::Get(space_time_config) => match space_time_config.date {
-                Some(ref date) if date_time_regex.is_match(date) => Err(anyhow::anyhow!(
+                Some(ref date) if !date_time_regex.is_match(date) => Err(anyhow::anyhow!(
                     "Entered date should be in the YYYY-MM-DD format"
                 )),
                 Some(ref date) => {
@@ -92,7 +92,10 @@ impl PromptAgent {
                         .current_provider
                         .get_timed_weather(&space_time_config.address, date)?;
 
-                    println!("{}", serde_json::to_string_pretty(&weather)?);
+                    println!(
+                        "-- Weather for {} on {}: \n{}",
+                        &space_time_config.address, date, weather
+                    );
                     Ok(())
                 }
                 None => {
@@ -100,7 +103,10 @@ impl PromptAgent {
                         .current_provider
                         .get_current_weather(&space_time_config.address)?;
 
-                    println!("{}", serde_json::to_string_pretty(&weather)?);
+                    println!(
+                        "-- Current weather for {}: \n{}",
+                        &space_time_config.address, weather
+                    );
 
                     Ok(())
                 }
@@ -166,7 +172,7 @@ mod test {
 
     #[test]
     fn test_get_available_providers() {
-        let available_providers = PromptAgent::get_available_providers().unwrap();        
+        let available_providers = PromptAgent::get_available_providers().unwrap();
         assert!(available_providers.contains_key(&ProviderName::default()));
     }
 }
