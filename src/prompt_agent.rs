@@ -223,12 +223,12 @@ mod test {
         let agent = PromptAgent::new().unwrap();
 
         let now = Utc::now();
-        let tomorrow = now - Duration::days(1);
-        let formatted_tomorrow = tomorrow.format("%Y-%m-%d");
+        let yesterday = now - Duration::days(1);
+        let formatted_yesterday = yesterday.format("%Y-%m-%d");
 
         let space_time_config = SpaceTimeConfig {
             address: String::from("Palermo, Italy"),
-            date: Some(formatted_tomorrow.to_string()),
+            date: Some(formatted_yesterday.to_string()),
         };
         let result = agent.process_command(Application {
             command: InputSubcommand::Get(space_time_config),
