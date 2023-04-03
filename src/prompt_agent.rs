@@ -8,7 +8,7 @@ use strum::IntoEnumIterator;
 
 use crate::provider::{Provider, ProviderName};
 
-static APP_NAME: &str = "elastio_task";
+static APP_NAME: &str = "ELASTIO_TASK";
 
 #[derive(Parser, Debug)]
 #[command(about = "Forecasts and displays present and past weather.")]
@@ -20,9 +20,14 @@ struct Application {
 #[derive(Parser, Debug, Clone)]
 #[clap(author, version, about)]
 pub enum InputSubcommand {
+    /// Configures provider for retrieving weather data.
+    /// Example: configure weather-api (open-weather-map is default)
     #[clap(subcommand)]
     Configure(ProviderName),
+    /// Gets apporpriate weather data, based on address and date(YYYY-MM-DD), if provided, and current weather if not.
+    /// Example: get "L'aquila, Italy" 2023-04-07
     Get(SpaceTimeConfig),
+    /// Displays currently used provider    
     CurrentProvider,
 }
 
@@ -36,7 +41,7 @@ pub struct SpaceTimeConfig {
 struct ApplicationConfig {
     provider_name: ProviderName,
 }
-
+/// Entity, which is responsible for managing provider's and users communication
 pub struct PromptAgent {
     current_provider: Box<dyn Provider>,
     current_provider_name: ProviderName,
@@ -52,16 +57,10 @@ impl PromptAgent {
         };
 
         let available_providers = Self::get_available_providers()?;
-        let (provider_name, provider_key) =
-            if let Some(key) = available_providers.get(&provider_name) {
-                (provider_name.to_owned(), key.to_owned())
-            } else if let Some((name, key)) = available_providers.iter().next() {
-                (name.to_owned(), key.to_owned())
-            } else {
-                return Err(anyhow::anyhow!(
-                    "Failed to retrieve any provider. Check .env file in the current folder"
-                ));
-            };
+        let provider_key = available_providers
+            .get(&provider_name)
+            .expect("Couldn't retrieve required api_key")
+            .to_owned();
 
         let provider: Box<dyn Provider> = provider_name.get_provider_instance(provider_key);
 
@@ -77,9 +76,8 @@ impl PromptAgent {
     }
 
     fn process_command(&self, command: Application) -> anyhow::Result<()> {
-        let date_time_regex = Regex::new(r"^\d{4}-\d{2}-\d{2}$").expect(
-            "Failed during regular expression initialization. Contact developers for proceeding.",
-        );
+        let date_time_regex = Regex::new(r"^\d{4}-\d{2}-\d{2}$")
+            .expect("Failed during regular expression initialization");
         match command.command {
             InputSubcommand::Get(space_time_config) => match space_time_config.date {
                 Some(ref date) if !date_time_regex.is_match(date) => Err(anyhow::anyhow!(
@@ -168,10 +166,13 @@ impl PromptAgent {
 
 #[cfg(test)]
 mod test {
+    use dotenvy::dotenv;
+
     use super::*;
 
     #[test]
     fn test_get_available_providers() {
+        dotenv().ok();
         let available_providers = PromptAgent::get_available_providers().unwrap();
         assert!(available_providers.contains_key(&ProviderName::default()));
     }

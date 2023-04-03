@@ -1,6 +1,16 @@
 use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 
+///To add another provider, do the following:
+/// 1. Add and declare in the bottom of this file module with valid Provider trait implementation
+/// 2. Add representative variant in ProviderName enumeration
+/// 3. Add appropriate match expression hand in get_provider_instance() method in the current file
+/// 4. Add YOUR_NEW_PROVIDER_API_NAME={api_key} line in the .env file, preserving case and style for YOUR_NEW_PROVIDER_API_NAME
+pub trait Provider {
+    fn get_current_weather(&self, address: &str) -> anyhow::Result<String>;
+    fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<String>;
+}
+
 #[derive(
     Debug,
     Clone,
@@ -41,11 +51,5 @@ impl ProviderName {
     }
 }
 
-pub trait Provider {
-    fn get_current_weather(&self, address: &str) -> anyhow::Result<String>;
-    fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<String>;
-}
-
-// TODO: add 2 more providers
 pub mod open_weather_map;
 pub mod weather_api;

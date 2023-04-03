@@ -9,7 +9,7 @@ use super::Provider;
 
 static TIMEOUT_SECONDS: u64 = 5;
 
-// Powered by https://openweathermap.org
+/// Powered by https://openweathermap.org
 pub struct OpenWeatherApi {
     https_client: Client,
     api_key: String,
@@ -56,6 +56,7 @@ impl Provider for OpenWeatherApi {
     fn get_current_weather(&self, address: &str) -> anyhow::Result<String> {
         let place_coords = self.get_coordinates_per_place(address)?;
         let response = self.get_current_weather_parsed_data(&place_coords)?;
+
         Ok(response)
     }
 
@@ -89,6 +90,7 @@ impl OpenWeatherApi {
             .timeout(Duration::from_secs(TIMEOUT_SECONDS))
             .build()
             .expect("Unable to build HTTPS client for open-weather-map provider. Contact developers for proceeding.");
+
         OpenWeatherApi {
             https_client,
             api_key,
@@ -134,7 +136,7 @@ impl OpenWeatherApi {
             .json::<CurrentWeatherData>()
             .with_context(|| {
                 anyhow::anyhow!(
-                    "open-weather-map returned invalid data. Please, consider changing provider"
+                    "open-weather-map returned invalid data"
                 )
             })?;
 
@@ -157,7 +159,7 @@ impl OpenWeatherApi {
         let response = self
             .get_response(url.as_str())?
             .json::<TimedWeatherData>()
-            .with_context(|| anyhow::anyhow!("open-weather-map returned inconsistent data. Make sure your request has a reasonable date"))?;
+            .with_context(|| anyhow::anyhow!("open-weather-map returned invalid data. Make sure your request has a reasonable date"))?;
 
         Ok(serde_json::to_string_pretty(&response)?)
     }

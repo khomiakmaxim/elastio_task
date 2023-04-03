@@ -8,8 +8,14 @@ use url::Url;
 use super::Provider;
 
 static TIMEOUT_SECONDS: u64 = 5;
-static OPEN_WEATHER_ERROR: &str = "weather-api returned invalid data. \
+static WEATHER_API_ERROR: &str = "weather-api returned invalid data. \
         If your input is correct, this might be caused by limitations of current provider";
+
+// Powered by https://www.weatherapi.com
+pub struct WeatherApi {
+    api_key: String,
+    https_client: Client,
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 struct CurrentWeatherData {
@@ -20,6 +26,20 @@ struct CurrentWeatherData {
 struct TimedWeatherData {
     forecast: Forecast,
     location: Location,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct Location {
+    name: String,
+    region: String,
+    country: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct WeatherInfo {
+    temp_c: f64,
+    temp_f: f64,
+    condition: ConditionInfo,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -41,29 +61,9 @@ struct Day {
     condition: ConditionInfo,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-struct Location {
-    name: String,
-    region: String,
-    country: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-struct WeatherInfo {
-    temp_c: f64,
-    temp_f: f64,
-    condition: ConditionInfo,
-}
-
 #[derive(Debug, Deserialize, Serialize, Clone)]
-struct ConditionInfo {
+struct ConditionInfo {    
     text: String,
-}
-
-// Powered by https://www.weatherapi.com
-pub struct WeatherApi {
-    api_key: String,
-    https_client: Client,
 }
 
 impl Provider for WeatherApi {
@@ -84,6 +84,7 @@ impl WeatherApi {
             .timeout(Duration::from_secs(TIMEOUT_SECONDS))
             .build()
             .expect("Unable to build HTTPS client for weather-api provider. Contact developers for proceeding.");
+
         WeatherApi {
             api_key,
             https_client,
@@ -104,7 +105,7 @@ impl WeatherApi {
         let response = self
             .get_response(url.as_str())?
             .json::<CurrentWeatherData>()
-            .with_context(|| anyhow::anyhow!(OPEN_WEATHER_ERROR))?;
+            .with_context(|| anyhow::anyhow!(WEATHER_API_ERROR))?;
 
         Ok(serde_json::to_string_pretty(&response)?)
     }
@@ -138,14 +139,14 @@ impl WeatherApi {
         let response = self
             .get_response(url.as_str())?
             .json::<TimedWeatherData>()
-            .with_context(|| anyhow::anyhow!(OPEN_WEATHER_ERROR))?;
+            .with_context(|| anyhow::anyhow!(WEATHER_API_ERROR))?;
 
         let last_day = response
             .forecast
             .forecastday
             .last()
-            .ok_or(anyhow::anyhow!("weatherapi returned invalid data"))?;
-        
+            .ok_or(anyhow::anyhow!("weather-api returned invalid data"))?;
+
         let forecast = Forecast {
             forecastday: vec![(*last_day).clone()],
         };
@@ -169,7 +170,7 @@ impl WeatherApi {
         let response = self
             .get_response(url.as_str())?
             .json::<TimedWeatherData>()
-            .with_context(|| anyhow::anyhow!(OPEN_WEATHER_ERROR))?;
+            .with_context(|| anyhow::anyhow!(WEATHER_API_ERROR))?;
 
         Ok(serde_json::to_string_pretty(&response)?)
     }
