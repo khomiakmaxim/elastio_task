@@ -41,8 +41,6 @@ struct WeatherInfo {
     feels_like: f64,
     pressure: i64,
     humidity: i64,
-    dew_point: f64,
-    clouds: i64,
     wind_speed: f64,
     wind_deg: i64,
     weather: Vec<ConditionInfo>,
@@ -69,15 +67,18 @@ impl Provider for OpenWeatherApi {
             );
             err
         })?;
+
         let midday_datetime = NaiveDateTime::new(
             datetime,
             NaiveTime::from_hms_opt(12, 0, 0).expect(
-                "Failed during date-time initialization. Contact developers for proceeding.",
+                "Failed during time parameter initialization. Contact developers for proceeding.",
             ),
         );
+
         let place_coords = self.get_coordinates_per_place(address)?;
         let response =
             self.get_timed_weather_parsed_data(&place_coords, midday_datetime.timestamp())?;
+
         Ok(response)
     }
 }
@@ -156,7 +157,7 @@ impl OpenWeatherApi {
         let response = self
             .get_response(url.as_str())?
             .json::<TimedWeatherData>()
-            .with_context(|| anyhow::anyhow!("open-weather-map returned inconsistent data. Make sure your request has a valid date"))?;
+            .with_context(|| anyhow::anyhow!("open-weather-map returned inconsistent data. Make sure your request has a reasonable date"))?;
 
         Ok(serde_json::to_string_pretty(&response)?)
     }

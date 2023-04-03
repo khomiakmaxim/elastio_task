@@ -43,11 +43,7 @@ impl ProviderName {
 
 pub trait Provider {
     fn get_current_weather(&self, address: &str) -> anyhow::Result<String>;
-    fn get_timed_weather(
-        &self,
-        address: &str,
-        date: &str, //Option<i64>,
-    ) -> anyhow::Result<String>;
+    fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<String>;
 }
 
 // TODO: add 2 more providers

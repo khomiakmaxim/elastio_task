@@ -8,6 +8,8 @@ use url::Url;
 use super::Provider;
 
 static TIMEOUT_SECONDS: u64 = 5;
+static OPEN_WEATHER_ERROR: &str = "weather-api returned invalid data. \
+        If your input is correct, this might be caused by limitations of current provider";
 
 #[derive(Debug, Deserialize, Serialize)]
 struct CurrentWeatherData {
@@ -102,11 +104,7 @@ impl WeatherApi {
         let response = self
             .get_response(url.as_str())?
             .json::<CurrentWeatherData>()
-            .with_context(|| {
-                anyhow::anyhow!(
-                    "weatherapi returned invalid data. Please, consider changing provider"
-                )
-            })?;
+            .with_context(|| anyhow::anyhow!(OPEN_WEATHER_ERROR))?;
 
         Ok(serde_json::to_string_pretty(&response)?)
     }
@@ -140,18 +138,14 @@ impl WeatherApi {
         let response = self
             .get_response(url.as_str())?
             .json::<TimedWeatherData>()
-            .with_context(|| {
-                anyhow::anyhow!(
-                    "weatherapi returned invalid data. \
-        If your input is correct, this might be caused by limitations of current provider"
-                )
-            })?;
+            .with_context(|| anyhow::anyhow!(OPEN_WEATHER_ERROR))?;
 
         let last_day = response
             .forecast
             .forecastday
             .last()
             .ok_or(anyhow::anyhow!("weatherapi returned invalid data"))?;
+        
         let forecast = Forecast {
             forecastday: vec![(*last_day).clone()],
         };
@@ -175,12 +169,7 @@ impl WeatherApi {
         let response = self
             .get_response(url.as_str())?
             .json::<TimedWeatherData>()
-            .with_context(|| {
-                anyhow::anyhow!(
-                    "weather-api returned invalid data. \
-         If your input is correct, this might be caused by limitations of current provider"
-                )
-            })?;
+            .with_context(|| anyhow::anyhow!(OPEN_WEATHER_ERROR))?;
 
         Ok(serde_json::to_string_pretty(&response)?)
     }

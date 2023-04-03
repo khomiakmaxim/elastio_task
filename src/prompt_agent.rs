@@ -75,7 +75,7 @@ impl PromptAgent {
         let command = Application::parse();
         self.process_command(command)
     }
-    
+
     fn process_command(&self, command: Application) -> anyhow::Result<()> {
         let date_time_regex = Regex::new(r"^\d{4}-\d{2}-\d{2}$").expect(
             "Failed during regular expression initialization. Contact developers for proceeding.",
@@ -143,7 +143,7 @@ impl PromptAgent {
                     "-- Current provider: {}.",
                     self.current_provider_name.get_pretty_name()
                 );
-                
+
                 Ok(())
             }
         }
