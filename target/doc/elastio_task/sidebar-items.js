@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":[["prompt_agent","Module for managing user and provider’s communication."],["provider","Module for performing specific API requests. Scales for new providers."]]};

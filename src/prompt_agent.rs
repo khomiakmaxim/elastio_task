@@ -56,7 +56,7 @@ pub struct PromptAgent {
 
 impl PromptAgent {
     /// Creates new entity of PromptAgent structure with stored\default provider as a trait object.
-    /// 
+    ///
     /// # Errors:
     /// Backpropagates error in case of invalid .env file configuration.
     pub fn new() -> anyhow::Result<Self> {
@@ -82,14 +82,14 @@ impl PromptAgent {
     }
 
     /// Performs CLI input parsing and prints the output to the console.
-    /// 
-    /// # Errors: 
+    ///
+    /// # Errors:
     /// Backpropagates errors in case of API modification\limitation or invalid input.
     pub fn parse_command(&self) -> anyhow::Result<()> {
         let command = Application::parse();
         self.process_command(command)
     }
-    
+
     fn process_command(&self, command: Application) -> anyhow::Result<()> {
         let date_time_regex = Regex::new(r"^\d{4}-\d{2}-\d{2}$")
             .expect("Failed during regular expression initialization");

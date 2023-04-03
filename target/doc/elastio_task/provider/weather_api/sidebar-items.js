@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":[["WeatherApi","Concrete structure, which implements ‘Provider’ trait for weather-api API requests."]]};

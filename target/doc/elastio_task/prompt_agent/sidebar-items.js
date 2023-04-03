@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":[["InputSubcommand","Enumeration for possible input subcommand variants."]],"struct":[["PromptAgent","Entity, which is responsible for managing provider’s and users communication."],["SpaceTimeConfig","Structure for mapping input configuration for ‘get’ subcommand."]]};

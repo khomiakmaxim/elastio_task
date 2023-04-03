@@ -4,7 +4,7 @@ use strum::EnumIter;
 
 /// General provider trait, used in dynamic dispatch
 pub trait Provider {
-    /// Trait method for retrieving weather, which is currently at the 'address', which is specified    
+    /// Traitmethod for retrieving weather, which is currently at the 'address', which is specified    
     fn get_current_weather(&self, address: &str) -> anyhow::Result<String>;
     /// Trait method for retrieving weather, which was\will be at the 'address', which is specified and on the 'date', which is also specified    
     fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<String>;
@@ -46,13 +46,13 @@ impl ProviderName {
             ProviderName::WeatherApi => Box::new(weather_api::WeatherApi::new(api_key)),
         }
     }
-    
+
     /// Returns a pretty name of encoded 'ProviderName' in .env file.
-    /// 
+    ///
     /// # Examples
     /// ```
     /// use elastio_task::provider::ProviderName;
-    /// 
+    ///
     /// let provider_name = ProviderName::OpenWeatherMap;
     /// assert_eq!(provider_name.to_string(), "OPEN_WEATHER_MAP");
     /// assert_eq!(provider_name.get_pretty_name(), "open-weather-map");

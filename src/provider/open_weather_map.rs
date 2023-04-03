@@ -56,9 +56,9 @@ struct ConditionInfo {
 
 impl Provider for OpenWeatherMap {
     /// Implementation of 'Provider' trait method. Returns the required JSON object in a readable format.
-    /// 
+    ///
     /// # Errors:
-    /// 
+    ///
     /// Backpropagates in case of invalid 'address', or API limitations.
     fn get_current_weather(&self, address: &str) -> anyhow::Result<String> {
         let place_coords = self.get_coordinates_per_place(address)?;
@@ -68,9 +68,9 @@ impl Provider for OpenWeatherMap {
     }
 
     /// Implementation of 'Provider' trait method. Returns the required JSON object in a readable format.
-    /// 
+    ///
     /// # Errors:
-    /// 
+    ///
     /// Backpropagates in case of invalid 'address' or 'date' or API limitations.
     fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<String> {
         let datetime = NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|err| {
