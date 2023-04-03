@@ -16,6 +16,6 @@ fn main() {
     };
 
     if let Err(err) = agent.parse_command() {
-        eprintln!("Error: {}.", err);        
+        eprintln!("Error: {}.", err);
     }
 }

@@ -11,7 +11,7 @@ use crate::provider::{Provider, ProviderName};
 static APP_NAME: &str = "elastio_task";
 
 #[derive(Parser, Debug)]
-#[command(about = "Forecasts and displays past weather")]
+#[command(about = "Forecasts and displays present and past weather.")]
 struct Application {
     #[command(subcommand)]
     command: InputSubcommand,
@@ -19,7 +19,6 @@ struct Application {
 
 #[derive(Parser, Debug, Clone)]
 #[clap(author, version, about)]
-// TODO: possibly add provider list
 pub enum InputSubcommand {
     #[clap(subcommand)]
     Configure(ProviderName),
@@ -39,7 +38,7 @@ struct ApplicationConfig {
 }
 
 pub struct PromptAgent {
-    current_provider: Box<dyn Provider>, // TODO: Check for other polymorphic solutions
+    current_provider: Box<dyn Provider>,
     current_provider_name: ProviderName,
 }
 
@@ -60,7 +59,7 @@ impl PromptAgent {
                 (name.to_owned(), key.to_owned())
             } else {
                 return Err(anyhow::anyhow!(
-                    "Failed to retrieve default provider. Check .env file in the current folder"
+                    "Failed to retrieve any provider. Check .env file in the current folder"
                 ));
             };
 
@@ -76,8 +75,7 @@ impl PromptAgent {
         let command = Application::parse();
         self.process_command(command)
     }
-
-    // TODO: This can be properly tested
+    
     fn process_command(&self, command: Application) -> anyhow::Result<()> {
         let date_time_regex = Regex::new(r"^\d{4}-\d{2}-\d{2}$").expect(
             "Failed during regular expression initialization. Contact developers for proceeding.",
@@ -96,6 +94,7 @@ impl PromptAgent {
                         "-- Weather for {} on {}: \n{}",
                         &space_time_config.address, date, weather
                     );
+
                     Ok(())
                 }
                 None => {
@@ -144,6 +143,7 @@ impl PromptAgent {
                     "-- Current provider: {}.",
                     self.current_provider_name.get_pretty_name()
                 );
+                
                 Ok(())
             }
         }

@@ -3,6 +3,7 @@ use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use url::Url;
 
 use super::Provider;
 
@@ -20,24 +21,22 @@ struct Coordinates {
 }
 #[derive(Debug, Deserialize, Serialize)]
 struct CurrentWeatherData {
+    current: WeatherInfo,
+    timezone: String,
     lat: f64,
     lon: f64,
-    timezone: String,
-    current: WeatherInfo,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct TimedWeatherData {
+    data: Vec<WeatherInfo>,
+    timezone: String,
     lat: f64,
     lon: f64,
-    timezone: String,
-    data: Vec<WeatherInfo>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 struct WeatherInfo {
-    sunrise: i64,
-    sunset: i64,
     temp: f64,
     feels_like: f64,
     pressure: i64,
@@ -100,12 +99,16 @@ impl OpenWeatherApi {
     }
 
     fn get_coordinates_per_place(&self, address: &str) -> anyhow::Result<Coordinates> {
-        let uri = format!(
-            "http://api.openweathermap.org/geo/1.0/direct?q={}&limit=1&appid={}",
-            address, self.api_key
-        );
+        let mut url = Url::parse("http://api.openweathermap.org/geo/1.0/direct")?;
+        url.query_pairs_mut()
+            .append_pair("q", address)
+            .append_pair("limit", "1")
+            .append_pair("appid", &self.api_key);
 
-        let response = self.get_response(&uri)?.json::<Vec<Coordinates>>()?;
+        let response = self
+            .get_response(url.as_str())?
+            .json::<Vec<Coordinates>>()
+            .with_context(|| anyhow::anyhow!("Failed to parse response from openweathermap"))?;
 
         if let Some(coordinates) = response.get(0) {
             Ok(coordinates.clone())
@@ -115,9 +118,18 @@ impl OpenWeatherApi {
     }
 
     fn get_current_weather_parsed_data(&self, coords: &Coordinates) -> anyhow::Result<String> {
-        let uri = format!("https://api.openweathermap.org/data/3.0/onecall?lat={}&lon={}&exclude=daily,minutely,hourly&appid={}&units=metric", coords.lat, coords.lon, self.api_key);
+        let mut url = Url::parse("https://api.openweathermap.org/data/3.0/onecall")?;
+        url.query_pairs_mut()
+            .append_pair("lat", &coords.lat.to_string())
+            .append_pair("lon", &coords.lon.to_string())
+            .append_pair("exclude", "daily")
+            .append_pair("exclude", "minutely")
+            .append_pair("exclude", "hourly")
+            .append_pair("appid", &self.api_key)
+            .append_pair("units", "metric");
+
         let response = self
-            .get_response(&uri)?
+            .get_response(url.as_str())?
             .json::<CurrentWeatherData>()
             .with_context(|| {
                 anyhow::anyhow!(
@@ -133,8 +145,18 @@ impl OpenWeatherApi {
         coords: &Coordinates,
         timestamp: i64,
     ) -> anyhow::Result<String> {
-        let uri = format!("https://api.openweathermap.org/data/3.0/onecall/timemachine?lat={}&lon={}&dt={}&appid={}&units=metric", coords.lat, coords.lon, timestamp, self.api_key);
-        let response = self.get_response(&uri)?.json::<TimedWeatherData>().with_context(|| anyhow::anyhow!("open-weather-map returned inconsistent data. Make sure your request has a valid date"))?;
+        let mut url = Url::parse("https://api.openweathermap.org/data/3.0/onecall/timemachine")?;
+        url.query_pairs_mut()
+            .append_pair("lat", &coords.lat.to_string())
+            .append_pair("lon", &coords.lon.to_string())
+            .append_pair("dt", &timestamp.to_string())
+            .append_pair("appid", &self.api_key)
+            .append_pair("units", "metric");
+
+        let response = self
+            .get_response(url.as_str())?
+            .json::<TimedWeatherData>()
+            .with_context(|| anyhow::anyhow!("open-weather-map returned inconsistent data. Make sure your request has a valid date"))?;
 
         Ok(serde_json::to_string_pretty(&response)?)
     }
