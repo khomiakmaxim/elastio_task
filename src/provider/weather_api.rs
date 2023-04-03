@@ -194,7 +194,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn test_get_open_weather_map_current() {
+    fn test_get_weather_api_current() {
         let provider = WeatherApi::new(API_KEY.to_string());
         let weather = provider.get_current_weather("Mykolaiv, Lviv oblast, Ukraine");
         assert!(weather.is_ok());
@@ -202,7 +202,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn test_get_open_weather_map_get_timed_yesterday_weather() {
+    fn test_get_weather_api_timed_yesterday_weather() {
         let provider = WeatherApi::new(API_KEY.to_string());
 
         let now = Utc::now();
@@ -216,7 +216,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn test_get_open_weather_map_get_timed_tommorow_weather() {
+    fn test_get_weather_api_timed_tommorow_weather() {
         let provider = WeatherApi::new(API_KEY.to_string());
 
         let now = Utc::now();
@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn test_get_open_weather_map_timed_invalid_timestamp() {
+    fn test_get_weather_api_timed_invalid_timestamp() {
         let provider = WeatherApi::new(API_KEY.to_string());
         let date = "088-04-01";
         let result = provider.get_timed_weather("Mykolaiv, Lviv oblast, Ukraine", date);

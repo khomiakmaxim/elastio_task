@@ -195,7 +195,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn test_get_open_weather_map_get_timed_yesterday_weather() {
+    fn test_get_open_weather_map_timed_yesterday_weather() {
         let provider = OpenWeatherMap::new(API_KEY.to_string());
 
         let now = Utc::now();
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn test_get_open_weather_map_get_timed_tommorow_weather() {
+    fn test_get_open_weather_map_timed_tommorow_weather() {
         let provider = OpenWeatherMap::new(API_KEY.to_string());
 
         let now = Utc::now();
