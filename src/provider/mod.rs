@@ -13,7 +13,7 @@ pub trait Provider {
 }
 
 /// Enumeration, which unifies modules outputs
-pub enum Weather {
+pub enum Weather { // TODO: Consider parsing output to one unified structure, making app design even less coupled
     // OpenWeatherMap
     FromOpenWeatherMapCurrent(open_weather_map::CurrentWeatherData),
     FromOpenWeatherMapTimed(open_weather_map::TimedWeatherData),
