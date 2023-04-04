@@ -1,13 +1,44 @@
 //! Module for performing specific API requests. Scales for new providers.
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 
 /// General provider trait, used in dynamic dispatch
 pub trait Provider {
     /// Traitmethod for retrieving weather, which is currently at the 'address', which is specified    
-    fn get_current_weather(&self, address: &str) -> anyhow::Result<String>;
+    fn get_current_weather(&self, address: &str) -> anyhow::Result<Weather>;
     /// Trait method for retrieving weather, which was\will be at the 'address', which is specified and on the 'date', which is also specified    
-    fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<String>;
+    fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<Weather>;
+}
+
+/// Enumeration, which unifies modules outputs
+pub enum Weather {
+    // OpenWeatherMap
+    FromOpenWeatherMapCurrent(open_weather_map::CurrentWeatherData),
+    FromOpenWeatherMapTimed(open_weather_map::TimedWeatherData),
+    // WeatherApi
+    FromWeatherApiCurrent(weather_api::CurrentWeatherData),
+    FromWeatherApiTimed(weather_api::TimedWeatherData),
+}
+
+impl Display for Weather {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Weather::FromOpenWeatherMapCurrent(data) => {
+                write!(f, "{}", serde_json::to_string_pretty(data).unwrap())
+            }
+            Weather::FromOpenWeatherMapTimed(data) => {
+                write!(f, "{}", serde_json::to_string_pretty(data).unwrap())
+            }
+            Weather::FromWeatherApiCurrent(data) => {
+                write!(f, "{}", serde_json::to_string_pretty(data).unwrap())
+            }
+            Weather::FromWeatherApiTimed(data) => {
+                write!(f, "{}", serde_json::to_string_pretty(data).unwrap())
+            }
+        }
+    }
 }
 
 #[derive(

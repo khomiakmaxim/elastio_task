@@ -1,12 +1,13 @@
 //! Provider implementation, powered by <https://www.weatherapi.com>.
+use std::time::Duration;
+
 use anyhow::Context;
 use chrono::{Local, NaiveDate};
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use url::Url;
 
-use super::Provider;
+use super::{Provider, Weather};
 
 static TIMEOUT_SECONDS: u64 = 5;
 static WEATHER_API_ERROR: &str = "weather-api returned invalid data. \
@@ -19,12 +20,12 @@ pub struct WeatherApi {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct CurrentWeatherData {
+pub struct CurrentWeatherData {
     current: WeatherInfo,
     location: Location,
 }
 #[derive(Debug, Deserialize, Serialize)]
-struct TimedWeatherData {
+pub struct TimedWeatherData {
     forecast: Forecast,
     location: Location,
 }
@@ -73,7 +74,7 @@ impl Provider for WeatherApi {
     /// # Errors:
     ///
     /// Backpropagates in case of invalid 'address', or API limitations.
-    fn get_current_weather(&self, address: &str) -> anyhow::Result<String> {
+    fn get_current_weather(&self, address: &str) -> anyhow::Result<Weather> {
         let response = self.get_current_weather_data(address)?;
         Ok(response)
     }
@@ -83,7 +84,7 @@ impl Provider for WeatherApi {
     /// # Errors:
     ///
     /// Backpropagates in case of invalid 'address' or 'date' or API limitations.
-    fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<String> {
+    fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<Weather> {
         let response = self.get_timed_weather_data(address, date)?;
         Ok(response)
     }
@@ -106,7 +107,7 @@ impl WeatherApi {
         self.https_client.get(uri).send()
     }
 
-    fn get_current_weather_data(&self, address: &str) -> anyhow::Result<String> {
+    fn get_current_weather_data(&self, address: &str) -> anyhow::Result<Weather> {
         let mut url = Url::parse("http://api.weatherapi.com/v1/current.json")?;
         url.query_pairs_mut()
             .append_pair("key", &self.api_key)
@@ -118,10 +119,10 @@ impl WeatherApi {
             .json::<CurrentWeatherData>()
             .with_context(|| anyhow::anyhow!(WEATHER_API_ERROR))?;
 
-        Ok(serde_json::to_string_pretty(&response)?)
+        Ok(Weather::FromWeatherApiCurrent(response))
     }
 
-    fn get_timed_weather_data(&self, address: &str, date: &str) -> anyhow::Result<String> {
+    fn get_timed_weather_data(&self, address: &str, date: &str) -> anyhow::Result<Weather> {
         let date_date = NaiveDate::parse_from_str(date, "%Y-%m-%d")?;
         let now_date = Local::now().date_naive();
 
@@ -138,7 +139,7 @@ impl WeatherApi {
         &self,
         address: &str,
         days_from_now: i64,
-    ) -> anyhow::Result<String> {
+    ) -> anyhow::Result<Weather> {
         let mut url = Url::parse("http://api.weatherapi.com/v1/forecast.json")?;
         url.query_pairs_mut()
             .append_pair("key", &self.api_key)
@@ -167,10 +168,10 @@ impl WeatherApi {
             location: response.location,
         };
 
-        Ok(serde_json::to_string_pretty(&response)?)
+        Ok(Weather::FromWeatherApiTimed(response))
     }
 
-    fn get_history_weather_data(&self, address: &str, date: &str) -> anyhow::Result<String> {
+    fn get_history_weather_data(&self, address: &str, date: &str) -> anyhow::Result<Weather> {
         let mut url = Url::parse("http://api.weatherapi.com/v1/history.json")?;
 
         url.query_pairs_mut()
@@ -183,7 +184,7 @@ impl WeatherApi {
             .json::<TimedWeatherData>()
             .with_context(|| anyhow::anyhow!(WEATHER_API_ERROR))?;
 
-        Ok(serde_json::to_string_pretty(&response)?)
+        Ok(Weather::FromWeatherApiTimed(response))
     }
 }
 

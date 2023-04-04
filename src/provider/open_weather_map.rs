@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use url::Url;
 
-use super::Provider;
+use super::{Provider, Weather};
 
 static TIMEOUT_SECONDS: u64 = 5;
 
@@ -22,7 +22,7 @@ struct Coordinates {
     lat: f64,
 }
 #[derive(Debug, Deserialize, Serialize)]
-struct CurrentWeatherData {
+pub struct CurrentWeatherData {
     current: WeatherInfo,
     timezone: String,
     lat: f64,
@@ -30,7 +30,7 @@ struct CurrentWeatherData {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct TimedWeatherData {
+pub struct TimedWeatherData {
     data: Vec<WeatherInfo>,
     timezone: String,
     lat: f64,
@@ -60,7 +60,7 @@ impl Provider for OpenWeatherMap {
     /// # Errors:
     ///
     /// Backpropagates in case of invalid 'address', or API limitations.
-    fn get_current_weather(&self, address: &str) -> anyhow::Result<String> {
+    fn get_current_weather(&self, address: &str) -> anyhow::Result<Weather> {
         let place_coords = self.get_coordinates_per_place(address)?;
         let response = self.get_current_weather_parsed_data(&place_coords)?;
 
@@ -72,14 +72,8 @@ impl Provider for OpenWeatherMap {
     /// # Errors:
     ///
     /// Backpropagates in case of invalid 'address' or 'date' or API limitations.
-    fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<String> {
-        let datetime = NaiveDate::parse_from_str(date, "%Y-%m-%d").map_err(|err| {
-            eprintln!(
-                "Error: {}\nEntered date should be in the YYYY-MM-DD format",
-                err
-            );
-            err
-        })?;
+    fn get_timed_weather(&self, address: &str, date: &str) -> anyhow::Result<Weather> {
+        let datetime = NaiveDate::parse_from_str(date, "%Y-%m-%d")?;
 
         let midday_datetime = NaiveDateTime::new(
             datetime,
@@ -133,7 +127,7 @@ impl OpenWeatherMap {
         }
     }
 
-    fn get_current_weather_parsed_data(&self, coords: &Coordinates) -> anyhow::Result<String> {
+    fn get_current_weather_parsed_data(&self, coords: &Coordinates) -> anyhow::Result<Weather> {
         let mut url = Url::parse("https://api.openweathermap.org/data/3.0/onecall")?;
         url.query_pairs_mut()
             .append_pair("lat", &coords.lat.to_string())
@@ -149,14 +143,14 @@ impl OpenWeatherMap {
             .json::<CurrentWeatherData>()
             .with_context(|| anyhow::anyhow!("open-weather-map returned invalid data"))?;
 
-        Ok(serde_json::to_string_pretty(&response)?)
+        Ok(Weather::FromOpenWeatherMapCurrent(response))
     }
 
     fn get_timed_weather_parsed_data(
         &self,
         coords: &Coordinates,
         timestamp: i64,
-    ) -> anyhow::Result<String> {
+    ) -> anyhow::Result<Weather> {
         let mut url = Url::parse("https://api.openweathermap.org/data/3.0/onecall/timemachine")?;
         url.query_pairs_mut()
             .append_pair("lat", &coords.lat.to_string())
@@ -168,9 +162,9 @@ impl OpenWeatherMap {
         let response = self
             .get_response(url.as_str())?
             .json::<TimedWeatherData>()
-            .with_context(|| anyhow::anyhow!("open-weather-map returned invalid data. Make sure your request has a reasonable date"))?;
+            .with_context(|| anyhow::anyhow!("open-weather-map returned invalid data. Make sure your request has a reasonable date(not more, than 3 days in the future)"))?;
 
-        Ok(serde_json::to_string_pretty(&response)?)
+        Ok(Weather::FromOpenWeatherMapTimed(response))
     }
 }
 
