@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["WeatherApi","Concrete structure, which implements ‘Provider’ trait for weather-api API requests."]]};
+window.SIDEBAR_ITEMS = {"struct":[["CurrentWeatherData",""],["TimedWeatherData",""],["WeatherApi","Concrete structure, which implements ‘Provider’ trait for weather-api API requests."]]};

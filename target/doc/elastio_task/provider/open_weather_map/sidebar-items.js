@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["OpenWeatherMap","Concrete structure, which implements ‘Provider’ trait for open-weather-map API requests."]]};
+window.SIDEBAR_ITEMS = {"struct":[["CurrentWeatherData",""],["OpenWeatherMap","Concrete structure, which implements ‘Provider’ trait for open-weather-map API requests."],["TimedWeatherData",""]]};
