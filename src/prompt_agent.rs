@@ -14,7 +14,7 @@ static APP_NAME: &str = "ELASTIO_TASK";
 
 #[derive(Parser, Debug)]
 #[command(about = "Forecasts and displays present and past weather.")]
-/// Structure for mapping input subcommand 'get' configuration.
+/// Structure for mapping input command.
 struct Application {
     #[command(subcommand)]
     command: InputSubcommand,
